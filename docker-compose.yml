@@ -1,0 +1,74 @@
+version: "3.7"
+
+services:
+  backend:
+    container_name: backend
+    env_file:
+      - .env
+    build:
+      dockerfile: docker/Dockerfile
+      context: .
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    deploy:
+      resources:
+        limits:
+          cpus: '0.70'
+          memory: 4G
+        reservations:
+          cpus: '0.20'
+          memory: 256M
+
+  label-studio:
+    image: heartexlabs/label-studio:1.6.0
+    container_name: app
+    ports:
+      - 8508:8080
+    stdin_open: true
+    tty: true
+    expose:
+      - 8508
+    depends_on:
+      - db
+    environment:
+      - DJANGO_DB=default
+      - POSTGRE_NAME=postgres
+      - POSTGRE_USER=postgres
+      - POSTGRE_PASSWORD=
+      - POSTGRE_PORT=5432
+      - POSTGRE_HOST=db
+      - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
+      - JSON_LOG=1
+      - LOG_LEVEL=DEBUG
+    command: label-studio-uwsgi
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8508/health" ]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  db:
+    container_name: db
+    image: postgres:11.5
+    hostname: db
+    restart: always
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  static: {}
+  pgdata:
+
+
+networks:
+  default:
+    name: rotulador

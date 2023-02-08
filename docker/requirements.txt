@@ -1,0 +1,10 @@
+pandas
+label_studio_sdk
+mlflow
+numpy
+scikit-learn
+nltk
+schedule
+modAL
+xgboost
+python-dotenv
