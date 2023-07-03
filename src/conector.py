@@ -64,7 +64,6 @@ class Conector:
         Importa dados (em CSV) para um projeto do Label Studio.
         Executa a função de limpar tarefas antes da importação
         """
-
         # saving a data frame to a buffer (same as with a regular file):
         self.clear_tasks()
         csv = df.to_csv(index=False, sep=",")
