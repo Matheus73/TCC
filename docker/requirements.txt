@@ -7,4 +7,5 @@ nltk
 schedule
 modAL
 xgboost
+tensorflow
 python-dotenv

@@ -1,4 +1,4 @@
-from active_learnig import ActiveLearning
+from active_learning import ActiveLearning
 
 if __name__ == "__main__":
     print("Executando o programa principal")
