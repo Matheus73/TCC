@@ -4,39 +4,19 @@ import pickle
 import time
 from typing import Any, TypeAlias
 
-# import nltk
 import pandas as pd
-import requests
 import schedule
 
-# from modAL.batch import uncertainty_batch_sampling
-# from modAL.models.learners import ActiveLearner
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from scipy.sparse._csr import csr_matrix
 
 # from sklearn import preprocessing
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import classification_report
 from keras.models import load_model
 
-# from xgboost import XGBClassifier
 from env import Env
 from conector import Conector
 
-# from tensorflow.keras import Model, Input
-# from tensorflow.keras.layers import LSTM, Embedding, Dense
-# from tensorflow.keras.layers import (
-#     InputLayer,
-#     TimeDistributed,
-#     SpatialDropout1D,
-#     Bidirectional,
-# )
-# from tensorflow import keras
-# from sklearn.model_selection import train_test_split
-
-
-# alias typing
-# Model: TypeAlias = ActiveLearner
 DataFrame: TypeAlias = pd.DataFrame
 CrsMatrix: TypeAlias = csr_matrix
 Vectorizer: TypeAlias = TfidfVectorizer
@@ -110,14 +90,13 @@ class ActiveLearning:
         path = os.path.join("dataset", name)
         return pd.read_csv(path)
 
-    def save_parquet(self, df: DataFrame, name: str) -> None:
+    def save_data(self, df: DataFrame, name: str) -> None:
         """
-        Salva um DataFrame em parquet
+        Salva um DataFrame em csv
         """
 
-        path = os.path.join("data/datasets", name)
-        path += ".parquet.gzip"
-        df.to_parquet(path, engine="pyarrow", compression="gzip")
+        path = os.path.join("dataset/", name)
+        df.to_csv(path, index=False)
 
     def train(self, x_train, y_train) -> None:
         """
@@ -153,43 +132,27 @@ class ActiveLearning:
         )
         print("Y criado")
 
+        # print len(X), len(y)
+        print(len(X))
+        print(len(y))
+
         predictions = self.model.predict(X)
-        print("Predições criadas")
-        print(predictions)
-        # get the most uncertainty
 
-        # return the most uncertainty
-        # data = data_unlabeled.iloc[
-        #     uncertainty.argsort()[: self._quantity_to_label]
-        # ]
+        # for i in range(len(predictions)):
+        #     for j in range(len(predictions[i])):
+        #         predictions[i][j] = [1 - i for i in predictions[i][j]]
 
-        # print(data.head())
-        return data_unlabeled.iloc[: self._quantity_to_label]
+        # most_uncertainty = []
+        # for i in range(len(predictions)):
+        #     for j in range(len(predictions[i])):
+        #         most_uncertainty.append((i, j, max(predictions[i][j])))
 
-        # pool = self.vectorizer.transform(data_unlabeled["text"])
-        # query_idx = uncertainty_batch_sampling(
-        #     self.model, pool, self._quantity_to_label
-        # # )
-        # data_unlabeled["prediction"] = self.model.predict(pool)
-        # data_unlabeled["prediction"] = self.le.inverse_transform(
-        #     data_unlabeled["prediction"]
-        # )
-        # print(data_unlabeled.head())
+        print("Uncertainty criada")
+        # print(len(most_uncertainty))
+        # print(most_uncertainty[0])
 
-        # # create a new column with the uncertainty of the prediction
-        # data_unlabeled["uncertaint"] = self.model.predict_proba(pool).max(
-        #     axis=1
-        # )
-        # data_unlabeled["uncertaint"] = data_unlabeled["uncertaint"].apply(
-        #     lambda x: 1 - x
-        # )
-
-        # print(data_unlabeled.head())
-        # data_unlabeled = data_unlabeled.sort_values(
-        #     by="uncertaint", ascending=False
-        # )
-
-        # return data_unlabeled.head(self.env.QUANTITY_TO_LABEL)
+        data_unlabeled_text = self.read_csv("ner_dataset_unlabeled_text.csv")
+        return data_unlabeled_text.iloc[: self.env.QUANTITY_TO_LABEL]
 
     def evaluate(self) -> None:
         """
@@ -259,7 +222,6 @@ class ActiveLearning:
         print("Starting pipeline...")
 
         print("Importing data...")
-        # df_train = self.data_import()
         df_train = self.conector.data_import()
         print("Data imported")
 
@@ -289,7 +251,6 @@ class ActiveLearning:
         print("Most uncertainty data got")
 
         print("Exporting data to Label Studio...")
-        # self.data_export(df_most_uncertainty)
         self.conector.data_export(df_most_uncertainty)
         print("Data exported to Label Studio")
 
@@ -300,8 +261,8 @@ class ActiveLearning:
         Concatena um novo dataset com um já existente
         """
 
-        name_dataset = f"df_{type_dataset}"
-        df_old = self.read_parquet(name_dataset)
+        name_dataset = f"ner_dataset_{type_dataset}"
+        df_old = self.read_csv(name_dataset)
         df = pd.concat([df_old, df_new])
         self.save_parquet(df, name_dataset)
 
@@ -321,16 +282,9 @@ class ActiveLearning:
         df_unlabeled = self.read_csv("ner_dataset_unlabeled.csv")
         df_most_uncertainty = self.get_most_uncertainty(df_unlabeled)
 
-        print("Export")
+        print("Export data to Label Studio")
 
         self.conector.data_export(df_most_uncertainty)
-
-        # print("Save")
-
-        # # Save model
-        # self.save("model.h5", self.model)
-
-        # self.cron()
 
     def save(self, name: str, obj: Any) -> None:
         """
@@ -338,8 +292,6 @@ class ActiveLearning:
         """
         path = os.path.join("data", name)
         obj.save(path)
-        # path += ".pkl"
-        # pickle.dump(obj, open(path, "wb"))
 
     def load_state(self):
         """
@@ -363,6 +315,7 @@ class ActiveLearning:
         print(f"Running with mode: { self.env.MODE}")
         if self.env.MODE == "INITIAL":
             self.setup()
+            # self.cron()
         elif self.env.MODE == "TRIGGER":
             self.load_state()
             self.pipeline()

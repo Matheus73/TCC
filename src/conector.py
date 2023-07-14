@@ -47,17 +47,46 @@ class Conector:
         exported_data = []
 
         # O dataset é composto por: texto, anotação e classe real.
+        data = []
         for row in content:
-            annotation = row["annotations"][0]["result"][0]["value"][
-                "choices"
-            ][0]
-            text = row["data"]["text"]
-            new_task = {"text": text, "class": annotation}
-            exported_data.append(new_task)
+            data.append(self.get_sentence_data(row))
+
+        # Criar um DataFrame com os dados
+        sentences_numbers = []
+        for i in range(len(content)):
+            sentences_numbers.append(
+                [f"Sentence: {len(content[i]) + 10000}"] * len(content[i])
+            )
+
+        df = pd.DataFrame(data, columns=["Sentence", "Word", "Tag"])
 
         df = pd.DataFrame(exported_data)
+        print(df.head())
 
         return df
+
+    def get_sentence_data(self, data: dict):
+        text = data["data"]["text"]
+        tokens = text.split()
+
+        # Criar uma lista de labels vazias para os tokens
+        labels = ["O"] * len(tokens)
+
+        # Preencher as labels com base nas anotações do JSON
+        for annotation in data["annotations"]:
+            for result in annotation["result"]:
+                start = result["value"]["start"]
+                end = result["value"]["end"]
+                label = result["value"]["labels"][0]
+
+                for i, token in enumerate(tokens):
+                    token_start = text.find(token)
+                    token_end = token_start + len(token)
+
+                    if start <= token_start and end >= token_end:
+                        labels[i] = label
+
+        return [tokens, labels]
 
     def data_export(self, df: DataFrame) -> None:
         """
@@ -65,6 +94,7 @@ class Conector:
         Executa a função de limpar tarefas antes da importação
         """
         # saving a data frame to a buffer (same as with a regular file):
+        print("Exportando dados para o Label Studio")
         self.clear_tasks()
         csv = df.to_csv(index=False, sep=",")
         try:
