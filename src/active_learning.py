@@ -315,10 +315,7 @@ class ActiveLearning:
         print(f"Running with mode: { self.env.MODE}")
         if self.env.MODE == "INITIAL":
             self.setup()
-            # self.cron()
-        elif self.env.MODE == "TRIGGER":
-            self.load_state()
-            self.pipeline()
+            self.cron()
         else:
             self.load_state()
             self.cron()
